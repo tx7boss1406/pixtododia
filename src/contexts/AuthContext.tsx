@@ -45,56 +45,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(!!data);
   };
 
-useEffect(() => {
-  let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-  const init = async () => {
-    const { data } = await supabase.auth.getSession();
-    const session = data.session;
-    const u = session?.user ?? null;
+    const safeLoadUser = async (sessionUser: SupaUser | null) => {
+      if (!mounted) return;
 
-    if (!mounted) return;
+      setUser(sessionUser);
 
-    setUser(u);
+      if (!sessionUser) {
+        setProfile(null);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
 
-    if (u) {
-      await fetchProfile(u.id);
-      await checkAdmin(u.id);
-    } else {
-      setProfile(null);
-      setIsAdmin(false);
-    }
+      try {
+        await Promise.race([
+          (async () => {
+            await fetchProfile(sessionUser.id);
+            await checkAdmin(sessionUser.id);
+          })(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), 4000)
+          ),
+        ]);
+      } catch (err) {
+        console.error("Erro ao carregar perfil:", err);
+        setProfile(null);
+        setIsAdmin(false);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-    setLoading(false);
-  };
+    // 🔹 Correção definitiva para evitar sessão inválida
+    const loadSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
 
-  init();
+      if (error) {
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
 
-  const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
-    const u = session?.user ?? null;
+      const session = data.session;
+      const u = session?.user ?? null;
+      safeLoadUser(u);
+    };
 
-    if (!mounted) return;
+    loadSession();
 
-    setUser(u);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      safeLoadUser(session?.user ?? null);
+    });
 
-    if (u) {
-      await fetchProfile(u.id);
-      await checkAdmin(u.id);
-    } else {
-      setProfile(null);
-      setIsAdmin(false);
-    }
-
-    setLoading(false);
-  });
-
-  return () => {
-    mounted = false;
-    listener.subscription.unsubscribe();
-  };
-}, []);
-
-
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
