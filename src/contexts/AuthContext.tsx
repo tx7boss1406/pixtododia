@@ -46,48 +46,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
 useEffect(() => {
-  const initAuth = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
+  let mounted = true;
 
-      const u = session?.user ?? null;
-      setUser(u);
+  const init = async () => {
+    const { data } = await supabase.auth.getSession();
+    const session = data.session;
+    const u = session?.user ?? null;
 
-      if (u) {
-        await fetchProfile(u.id).catch(() => setProfile(null));
-        await checkAdmin(u.id).catch(() => setIsAdmin(false));
-      }
-    } catch (err) {
-      console.error("Erro ao recuperar sessão:", err);
-    } finally {
-      setLoading(false);
+    if (!mounted) return;
+
+    setUser(u);
+
+    if (u) {
+      await fetchProfile(u.id);
+      await checkAdmin(u.id);
+    } else {
+      setProfile(null);
+      setIsAdmin(false);
     }
+
+    setLoading(false);
   };
 
-  initAuth();
+  init();
 
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (_event, session) => {
-      try {
-        const u = session?.user ?? null;
-        setUser(u);
+  const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const u = session?.user ?? null;
 
-        if (u) {
-          await fetchProfile(u.id).catch(() => setProfile(null));
-          await checkAdmin(u.id).catch(() => setIsAdmin(false));
-        } else {
-          setProfile(null);
-          setIsAdmin(false);
-        }
-      } catch (err) {
-        console.error("Erro no onAuthStateChange:", err);
-      } finally {
-        setLoading(false);
-      }
+    if (!mounted) return;
+
+    setUser(u);
+
+    if (u) {
+      await fetchProfile(u.id);
+      await checkAdmin(u.id);
+    } else {
+      setProfile(null);
+      setIsAdmin(false);
     }
-  );
 
-  return () => subscription.unsubscribe();
+    setLoading(false);
+  });
+
+  return () => {
+    mounted = false;
+    listener.subscription.unsubscribe();
+  };
 }, []);
 
 
