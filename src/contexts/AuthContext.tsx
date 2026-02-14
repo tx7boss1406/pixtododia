@@ -46,9 +46,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  let mounted = true;
+
+  const init = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!mounted) return;
+
+    const u = session?.user ?? null;
+    setUser(u);
+
+    if (u) {
+      await fetchProfile(u.id);
+      await checkAdmin(u.id);
+    }
+
+    setLoading(false);
+  };
+
+  init();
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      if (!mounted) return;
+
       const u = session?.user ?? null;
       setUser(u);
+
       if (u) {
         await fetchProfile(u.id);
         await checkAdmin(u.id);
@@ -56,21 +80,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setIsAdmin(false);
       }
-      setLoading(false);
-    });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const u = session?.user ?? null;
-      setUser(u);
-      if (u) {
-        fetchProfile(u.id);
-        checkAdmin(u.id);
-      }
       setLoading(false);
-    });
+    }
+  );
 
-    return () => subscription.unsubscribe();
-  }, []);
+  return () => {
+    mounted = false;
+    subscription.unsubscribe();
+  };
+}, []);
+
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
