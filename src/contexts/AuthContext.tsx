@@ -45,51 +45,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(!!data);
   };
 
-  useEffect(() => {
-  let mounted = true;
-
-  const init = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!mounted) return;
-
-    const u = session?.user ?? null;
-    setUser(u);
-
-    if (u) {
-      await fetchProfile(u.id);
-      await checkAdmin(u.id);
-    }
-
-    setLoading(false);
-  };
-
-  init();
-
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    async (_event, session) => {
-      if (!mounted) return;
+useEffect(() => {
+  const initAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
       const u = session?.user ?? null;
       setUser(u);
 
       if (u) {
-        await fetchProfile(u.id);
-        await checkAdmin(u.id);
-      } else {
-        setProfile(null);
-        setIsAdmin(false);
+        await fetchProfile(u.id).catch(() => setProfile(null));
+        await checkAdmin(u.id).catch(() => setIsAdmin(false));
       }
-
+    } catch (err) {
+      console.error("Erro ao recuperar sessão:", err);
+    } finally {
       setLoading(false);
+    }
+  };
+
+  initAuth();
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    async (_event, session) => {
+      try {
+        const u = session?.user ?? null;
+        setUser(u);
+
+        if (u) {
+          await fetchProfile(u.id).catch(() => setProfile(null));
+          await checkAdmin(u.id).catch(() => setIsAdmin(false));
+        } else {
+          setProfile(null);
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        console.error("Erro no onAuthStateChange:", err);
+      } finally {
+        setLoading(false);
+      }
     }
   );
 
-  return () => {
-    mounted = false;
-    subscription.unsubscribe();
-  };
+  return () => subscription.unsubscribe();
 }, []);
+
 
 
   const login = async (email: string, password: string) => {
