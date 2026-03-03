@@ -22,6 +22,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminServices from "./pages/admin/AdminServices";
 import AdminScripts from "./pages/admin/AdminScripts";
+import PremiumPage from "./premium/PremiumPage";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/calculator" element={<DashboardRoute><Calculator /></DashboardRoute>} />
             <Route path="/achievements" element={<DashboardRoute><Achievements /></DashboardRoute>} />
             <Route path="/settings" element={<DashboardRoute><SettingsPage /></DashboardRoute>} />
+            <Route path="/premium" element={<DashboardRoute><PremiumPage /></DashboardRoute>} />
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<AdminUsers />} />

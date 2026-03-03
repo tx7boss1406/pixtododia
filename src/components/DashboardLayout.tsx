@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { User } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard,
@@ -18,12 +19,16 @@ import {
   Moon,
   ChevronRight,
   Shield,
+  HelpCircle,
+  Star,
 } from "lucide-react";
+
 
 const navItems = [
   { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { title: "Serviços", path: "/services", icon: Briefcase },
   { title: "Gerador", path: "/generator", icon: Sparkles },
+  { title: "Premium Studio", path: "/premium", icon: Star },
   { title: "Clientes", path: "/clients", icon: Users },
   { title: "Scripts", path: "/scripts", icon: MessageSquare },
   { title: "Calculadora", path: "/calculator", icon: Calculator },
@@ -33,6 +38,7 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { user, profile, isAdmin, isAuthenticated, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
@@ -161,12 +167,104 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
           </div>
-          <button
-            onClick={toggleTheme}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-muted"
-          >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
+         {/* MENU USUÁRIO — PREMIUM REAL */}
+<div className="relative">
+  <button
+    onClick={() => setMenuOpen((v) => !v)}
+    className="
+      group
+      flex items-center gap-3
+      rounded-xl
+      border border-border
+      bg-gradient-to-b from-background to-muted/40
+      px-4 py-2
+      shadow-sm
+      transition-all duration-200
+      hover:shadow-lg
+      hover:-translate-y-[1px]
+      active:translate-y-0
+    "
+  >
+    {/* Avatar */}
+    <div className="
+      h-9 w-9
+      rounded-lg
+      bg-gradient-to-br from-indigo-500 via-blue-500 to-cyan-500
+      shadow-md
+      flex items-center justify-center
+      text-white text-sm font-semibold
+    ">
+      {profile?.name?.charAt(0)?.toUpperCase() || "U"}
+    </div>
+
+    {/* Texto */}
+    <span className="
+      hidden sm:block
+      text-sm font-semibold
+      text-foreground
+      tracking-tight
+    ">
+      Pessoa Física
+    </span>
+
+    {/* Glow hover */}
+    <div className="
+      pointer-events-none
+      absolute inset-0
+      rounded-xl
+      opacity-0
+      group-hover:opacity-100
+      transition
+      bg-gradient-to-r from-indigo-500/10 via-blue-500/10 to-cyan-500/10
+    " />
+  </button>
+
+ {menuOpen && (
+  <div className="absolute right-0 mt-3 w-72 rounded-2xl border border-border bg-popover shadow-2xl z-50 p-2 backdrop-blur-xl animate-in fade-in zoom-in-95">
+
+    {/* PERFIL */}
+    <button className="flex w-full items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent transition text-sm">
+      <User className="h-4 w-4 shrink-0" />
+      <span className="whitespace-nowrap">Perfil</span>
+    </button>
+
+    {/* DARK MODE */}
+    <button
+      onClick={toggleTheme}
+      className="flex w-full items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent transition text-sm"
+    >
+      <Moon className="h-4 w-4 shrink-0" />
+      <span className="whitespace-nowrap">Alternar modo escuro</span>
+    </button>
+
+    {/* CONFIGURAÇÕES */}
+    <button className="flex w-full items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent transition text-sm">
+      <Settings className="h-4 w-4 shrink-0" />
+      <span className="whitespace-nowrap">Configurações</span>
+    </button>
+
+    {/* AJUDA */}
+    <button className="flex w-full items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent transition text-sm">
+      <HelpCircle className="h-4 w-4 shrink-0" />
+      <span className="whitespace-nowrap">Central de ajuda</span>
+    </button>
+
+    <div className="my-2 border-t border-border" />
+
+    {/* SAIR */}
+    <button
+      onClick={handleLogout}
+      className="flex w-full items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-sm text-red-500 transition"
+    >
+      <LogOut className="h-4 w-4 shrink-0" />
+      <span className="whitespace-nowrap">Sair</span>
+    </button>
+  </div>
+)}
+
+</div>
+
+
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">
